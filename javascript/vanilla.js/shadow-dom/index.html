@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Kanban Shadow DOM</title>
+	<style type="text/css">
+		main {
+			display: grid;
+			padding: 10px 10px 10px 10px;
+			grid-template-columns: repeat(auto-fill, 300px)
+		}
+	</style>
+	<script type="text/javascript">
+
+		function createSwimlaneElement() {
+			customElements.define("x-swimlane",
+				class extends HTMLElement {
+
+					get title() {
+						return this.shadowRoot.querySelector("slot[name=title]").assignedElements()[0].innerText;
+					}
+
+					constructor() {
+						super();
+					}
+
+					connectedCallback() {
+						const template = document.getElementById("swimlane-template").content;
+						this.attachShadow({mode: "open"}).appendChild(template.cloneNode(true));
+
+						this.shadowRoot.querySelector(".swimlane-add").addEventListener("click", (ev) => this.doAdd(ev));
+
+						const swimlane = this.shadowRoot.querySelector(".swimlane");
+
+					}
+
+					doAdd(ev) {
+						// fires when someone clicks the add button
+						// implementation is up to ui designer
+						this.shadowRoot.dispatchEvent(new CustomEvent("add", {
+							bubbles: true,
+							composed: true,
+							cancelable: true,
+							detail: {
+								swimlane: this.title
+							}
+						}));
+					}
+				}
+			);
+		}
+
+		function createCardElement() {
+			customElements.define("x-card",
+				class extends HTMLElement {
+					get cardId() {
+						return this.shadowRoot ? this.shadowRoot.host.getAttribute("x-card-id") : "";
+					}
+
+					get title() {
+						return this.shadowRoot
+							? this.shadowRoot.querySelector("slot[name=title]").assignedElements().length > 0
+								? this.shadowRoot.querySelector("slot[name=title]").assignedElements()[0].innerText
+								: ""
+							: "";
+					}
+
+					get priority() {
+						return this.shadowRoot
+							? this.shadowRoot.querySelector("slot[name=priority]").assignedElements().length > 0
+								? this.shadowRoot.querySelector("slot[name=priority]").assignedElements()[0].innerText
+								: "Low"
+							: "Low";
+					}
+
+					get description() {
+						return this.shadowRoot
+							? this.shadowRoot.querySelector("slot[name=description]").assignedElements().length > 0
+								? this.shadowRoot.querySelector("slot[name=description]").assignedElements()[0].innerText
+								: ""
+							: "";
+					}
+
+					constructor() {
+						super();
+					}
+
+					connectedCallback() {
+						const template = document.getElementById("card-template").content;
+						this.attachShadow({mode: "open"}).appendChild(template.cloneNode(true));
+
+						if (!this.shadowRoot.host.hasAttribute("x-card-id")) {
+							this.shadowRoot.host.setAttribute("x-card-id", new Date().getTime().toString() + Math.random().toString());
+						}
+
+						if (this.shadowRoot.querySelector("slot[name=title]").assignedElements().length === 0) {
+							const titleSlot = document.createElement("span");
+							titleSlot.setAttribute("slot", "title");
+							titleSlot.innerText = "Title";
+							this.shadowRoot.host.appendChild(titleSlot);
+						}
+						if (this.shadowRoot.querySelector("slot[name=priority]").assignedElements().length === 0) {
+							const prioritySlot = document.createElement("span");
+							prioritySlot.setAttribute("slot", "priority");
+							prioritySlot.innerText = "Low";
+							this.shadowRoot.host.appendChild(prioritySlot);
+						}
+						if (this.shadowRoot.querySelector("slot[name=description]").assignedElements().length === 0) {
+							const descriptionSlot = document.createElement("span");
+							descriptionSlot.setAttribute("slot", "description");
+							descriptionSlot.innerText = "Placeholder";
+							this.shadowRoot.host.appendChild(descriptionSlot);
+						}
+
+						this.shadowRoot.querySelector(".card-edit").addEventListener("click", (ev) => this.doEdit(ev));
+						this.shadowRoot.querySelector(".card-save").addEventListener("click", (ev) => this.doSave(ev));
+						this.shadowRoot.querySelector(".card-delete").addEventListener("click", (ev) => this.doDelete(ev));
+
+						if (this.shadowRoot.host.getAttribute("draggable") === "true") {
+							const card = this.shadowRoot.querySelector(".card");
+							card.setAttribute("draggable", "true");
+						}
+					}
+
+					doDelete(ev) {
+						// fires before removing card from the dom, to prevent deletion cancel event
+						if (!this.shadowRoot.dispatchEvent(new CustomEvent("delete", {
+							bubbles: true,
+							cancelable: true,
+							composed: true,
+							detail: {
+								cardId: this.cardId
+							}
+						}))) {
+							ev.preventDefault();
+							return;
+						}
+						this.shadowRoot.host.remove();
+					}
+
+					doEdit(ev) {
+						// gives control over the UI designer if they want cards to be editable or not
+						// if you do not want the card to be editable then cancel this event
+						if (!this.shadowRoot.dispatchEvent(new CustomEvent("edit", {
+							bubbles: true,
+							cancelable: true,
+							composed: true,
+							detail: {
+								cardId: this.cardId
+							}
+						}))) {
+							ev.preventDefault();
+							return;
+						}
+						this.shadowRoot.querySelector(".card").classList.add("edit");
+						this.shadowRoot.querySelector(".card").removeAttribute("draggable");
+						const titleSlot = this.shadowRoot.querySelector("slot[name=title]").assignedElements()[0];
+						const prioritySlot = this.shadowRoot.querySelector("slot[name=priority]").assignedElements()[0];
+						const descriptionSlot = this.shadowRoot.querySelector("slot[name=description]").assignedElements()[0];
+
+						this.shadowRoot.querySelector("[name=title-edit]").value = titleSlot.innerText;
+						const opts = this.shadowRoot.querySelector("[name=priority-edit]");
+						for (let i = 0; i < opts.options.length; i++) {
+							if (opts.options[i].value === prioritySlot.innerText) {
+								opts.selectedIndex = i;
+								break;
+							}
+						}
+						this.shadowRoot.querySelector("[name=description-edit]").value = descriptionSlot.innerText;
+					}
+
+					doSave(ev) {
+						this.shadowRoot.querySelector(".card").classList.remove("edit");
+						if (this.shadowRoot.host.getAttribute("draggable") === "true") {
+							this.shadowRoot.querySelector(".card").setAttribute("draggable", "true");
+						}
+						const titleSlot = this.shadowRoot.querySelector("slot[name=title]").assignedElements()[0];
+						const prioritySlot = this.shadowRoot.querySelector("slot[name=priority]").assignedElements()[0];
+						const descriptionSlot = this.shadowRoot.querySelector("slot[name=description]").assignedElements()[0];
+
+						const newTitle = this.shadowRoot.querySelector("[name=title-edit]").value;
+						const newPriority = this.shadowRoot.querySelector("[name=priority-edit]").value;
+						const newDescription = this.shadowRoot.querySelector("[name=description-edit]").value;
+
+						// this is the hook where you should persist the data
+						// if something goes wrong in persisting the data then cancel the event
+						if (!this.shadowRoot.dispatchEvent(new CustomEvent("save", {
+							bubbles: true,
+							cancelable: true,
+							composed: true,
+							detail: {
+								cardId: this.cardId,
+								newTitle: newTitle,
+								newPriority: newPriority,
+								newDescription: newDescription
+							}
+						}))) {
+							return;
+						}
+
+						titleSlot.innerText = newTitle;
+						prioritySlot.innerText = newPriority;
+						descriptionSlot.innerText = newDescription;
+
+						// this indicates that all updates to the dom have been completed
+						// it is too late to cancel the update at this point
+						this.shadowRoot.dispatchEvent(new CustomEvent("saved", {
+							bubbles: true,
+							cancelable: false,
+							composed: true,
+							detail: {
+								cardId: this.cardId,
+								newTitle: newTitle,
+								newPriority: newPriority,
+								newDescription: newDescription
+							}
+						}));
+
+					}
+				}
+			);
+		}
+
+		let data = {};
+
+		function saveData(data) {
+			localStorage.setItem("data", JSON.stringify(data));
+		}
+
+		function addCard(ev) {
+			console.log(ev);
+
+			const card = document.createElement("x-card");
+			card.addEventListener("delete", deleteCard);
+			card.addEventListener("save", saveCard);
+			ev.target.appendChild(card);
+			data[ev.detail.swimlane].push({
+				id: card.cardId,
+				name: card.title,
+				priority: card.priority,
+				body: card.description
+			});
+			saveData(data);
+		}
+
+		function saveCard(ev) {
+			data[ev.target.parentElement.title] = data[ev.target.parentElement.title].map((e) => {
+				if (e.id !== ev.detail.cardId) {
+					return e;
+				}
+				e.name = ev.detail.newTitle;
+				e.priority = ev.detail.newPriority;
+				e.body = ev.detail.newDescription;
+				return e;
+			});
+			saveData(data);
+		}
+
+		function deleteCard(ev) {
+			data[ev.target.parentElement.title] = data[ev.target.parentElement.title].filter((e) => e.id !== ev.detail.cardId);
+			saveData(data);
+		}
+
+		function cardDrop(ev) {
+			if (ev.currentTarget.tagName === "X-SWIMLANE") {
+				// get the card based on the id in the transfer data
+				const card = document.querySelector("x-card[x-card-id='" + ev.dataTransfer.getData("text") + "']");
+				const oldSwimlane = card.parentElement.title;
+				ev.currentTarget.style.backgroundColor = "";
+				// append will overwrite the card's old parent, moving it to the new location
+				ev.currentTarget.appendChild(card);
+
+				// save the new layout to storage
+				const cardData = data[oldSwimlane].find((e) => e.id === card.cardId);
+				data[oldSwimlane] = data[oldSwimlane].filter((e) => e.id !== cardData.id);
+				data[ev.currentTarget.title].push(cardData);
+				saveData(data);
+			}
+		}
+
+		function cardDragOver(ev) {
+			console.log("cardDragOver", ev);
+			ev.preventDefault();
+			ev.currentTarget.style.backgroundColor = "lightblue";
+		}
+
+		function cardDragOut(ev) {
+			console.log("cardDragOut", ev);
+			ev.preventDefault();
+			ev.target.style.backgroundColor = "";
+		}
+
+		function cardDrag(ev) {
+			console.log("cardDrag", ev);
+			// ev.preventDefault();
+			ev.dataTransfer.dropEffect = "move";
+			// this will be used to tell the drop target which card needs to be moved
+			ev.dataTransfer.setData("text", ev.target.cardId);
+			ev.currentTarget.style.backgroundColor = "lightgrey"
+			ev.effectAllowed = "copyMove"
+		}
+
+		function createSwimLane(title, childFn) {
+			const lane = document.createElement("x-swimlane");
+
+			const titleSlot = document.createElement("span");
+			titleSlot.setAttribute("slot", "title");
+			titleSlot.innerText = title;
+			lane.appendChild(titleSlot);
+
+			lane.addEventListener("dragenter", cardDragOver);
+			lane.addEventListener("dragleave", cardDragOut);
+			lane.addEventListener("dragover", cardDragOver);
+			lane.addEventListener("drop", cardDrop);
+
+			for (let child of childFn()) {
+				lane.appendChild(child);
+			}
+
+			lane.addEventListener("add", addCard);
+
+			return lane;
+		}
+
+		function createCard(cardDetails) {
+			const card = document.createElement("x-card");
+			card.setAttribute("draggable", "true");
+			card.setAttribute("x-card-id", cardDetails.id)
+
+			// the name of the card
+			const nameSlot = document.createElement("span");
+			nameSlot.setAttribute("slot", "title");
+			nameSlot.innerText = cardDetails.name;
+			card.appendChild(nameSlot);
+
+			// the priority of the card
+			const prioritySlot = document.createElement("span");
+			prioritySlot.setAttribute("slot", "priority");
+			prioritySlot.innerText = cardDetails.priority;
+			card.appendChild(prioritySlot);
+
+			// the description of the card
+			const descriptionSlot = document.createElement("span");
+			descriptionSlot.setAttribute("slot", "description");
+			descriptionSlot.innerText = cardDetails.body;
+			card.appendChild(descriptionSlot);
+
+			card.addEventListener("delete", deleteCard);
+			card.addEventListener("save", saveCard);
+			card.addEventListener("dragstart", cardDrag);
+			return card;
+		}
+
+		function createSwimLanes() {
+			const main = document.querySelector("main");
+			let ls = localStorage.getItem("data")
+			if (ls === null) {
+				// on first load create our default swim lanes
+				ls = "{\"Todo\":[],\"In Progress\":[],\"Done\":[]}";
+			}
+			data = JSON.parse(ls);
+			for (let swim in data) {
+				if (!data.hasOwnProperty(swim)) {
+					continue;
+				}
+
+				// create a swimlane and a child generator from data store
+				main.appendChild(createSwimLane(swim, function* () {
+					for (let i = 0; i < data[swim].length; i++) {
+						yield createCard(data[swim][i]);
+					}
+				}));
+			}
+
+			saveData(data);
+		}
+
+		window.addEventListener("DOMContentLoaded", () => {
+			createSwimlaneElement();
+			createCardElement();
+			createSwimLanes();
+
+		});
+	</script>
+</head>
+<body>
+
+<!-- these are our swim lanes -->
+<template id="swimlane-template">
+	<style>
+		.swimlane {
+			display: grid;
+			border: 1px solid black;
+			border-radius: 10px;
+			padding: 5px;
+			margin: 5px;
+			grid-template-rows: 30px auto;
+		}
+
+		.swimlane-heading {
+			border-bottom: 1px solid black;
+		}
+
+		.swimlane-heading > * {
+			display: inline;
+		}
+
+		.swimlane-add {
+			float: right;
+			cursor: pointer;
+			user-select: none;
+		}
+
+		.swimlane-add:hover {
+			border: 1px solid black;
+		}
+
+		.swimlane-add:active {
+			background-color: aliceblue;
+		}
+	</style>
+	<div class="swimlane">
+		<div class="swimlane-heading">
+			<div class="swimlane-title">
+				<slot name="title">Placeholder</slot>
+			</div>
+			<div class="swimlane-add">➕</div>
+		</div>
+		<div class="swimlane-content">
+			<!-- catch all slot, all extra children will be added here -->
+			<slot></slot>
+		</div>
+	</div>
+</template>
+
+<!-- these are our sticky notes for the kanban, the card -->
+<template id="card-template">
+	<style>
+		.card {
+			border: 1px solid black;
+			border-radius: 5px;
+			margin: 5px;
+			padding: 3px;
+			min-height: 50px;
+		}
+
+		.edit-only {
+			display: none;
+		}
+
+		.card-heading {
+			border-bottom: 1px solid black;
+		}
+
+		.card-heading > .card-actions > * {
+			display: inline;
+		}
+
+		.card.edit > .card-heading > .card-actions {
+			display: none;
+		}
+
+		.card-save {
+			display: none;
+		}
+
+		.card.edit > .card-save {
+			display: block;
+			float: right;
+		}
+
+		.card.edit .not-edit {
+			display: none;
+		}
+
+		.card-heading > * {
+			display: inline;
+		}
+
+		.card.edit .edit-only {
+			display: inline;
+		}
+
+		.card-edit {
+			cursor: pointer;
+			user-select: none;
+		}
+
+		.card-edit:hover {
+			border: 1px solid black;
+		}
+
+		.card-edit:active {
+			background-color: aliceblue;
+		}
+
+		.card-delete {
+			cursor: pointer;
+			user-select: none;
+		}
+
+		.card-delete:hover {
+			border: 1px solid black;
+		}
+
+		.card-delete:active {
+			background-color: aliceblue;
+		}
+
+		.card-name {
+			text-overflow: ellipsis;
+		}
+
+		.card-priority {
+			float: right;
+		}
+	</style>
+	<div class="card">
+		<div class="card-heading">
+			<div class="card-actions">
+				<div class="card-edit">✏️</div>
+				<div class="card-delete">🗑️</div>
+			</div>
+			<div class="card-name">
+				<slot class="not-edit" name="title">Title</slot>
+				<input type="text" class="edit-only" name="title-edit">
+			</div>
+			<div class="card-priority">
+				<slot class="not-edit" name="priority">Low</slot>
+				<select class="edit-only" name="priority-edit">
+					<option value="High">High</option>
+					<option value="Medium">Medium</option>
+					<option value="Low">Low</option>
+				</select>
+			</div>
+		</div>
+		<div class="card-body">
+			<slot class="not-edit" name="description">Placeholder</slot>
+			<textarea class="edit-only" name="description-edit"></textarea>
+		</div>
+		<div class="card-save">💾</div>
+	</div>
+</template>
+
+<main>
+</main>
+
+</body>
+</html>
