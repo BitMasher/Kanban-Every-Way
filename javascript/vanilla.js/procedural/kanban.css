@@ -1,0 +1,108 @@
+main {
+	display: grid;
+	padding: 10px 10px 10px 10px;
+	grid-template-columns: repeat(auto-fill, 300px)
+}
+
+.templates {
+	display: none;
+}
+
+.column {
+	display: grid;
+	border: 1px solid black;
+	padding: 5px;
+	margin: 5px;
+	grid-template-rows: 30px auto;
+}
+
+.column-heading {
+	border-bottom: 1px solid black;
+}
+
+.column-heading > * {
+	display: inline;
+}
+
+.column-add {
+	float: right;
+	cursor: pointer;
+	user-select: none;
+}
+
+.column-add:hover {
+	border: 1px solid black;
+}
+
+.column-add:active {
+	background-color: aliceblue;
+}
+
+.column-content {
+}
+
+.card {
+	border: 1px solid black;
+	margin: 5px;
+	padding: 3px;
+	min-height: 50px;
+}
+
+.card-heading {
+	border-bottom: 1px solid black;
+}
+
+.card-heading > .card-actions > * {
+	display: inline;
+}
+
+.card.edit > .card-heading > .card-actions {
+	display: none;
+}
+
+.card-save {
+	display: none;
+}
+
+.card.edit > .card-save {
+	display: block;
+	float: right;
+}
+
+.card-heading > * {
+	display: inline;
+}
+
+.card-edit {
+	cursor: pointer;
+	user-select: none;
+}
+
+.card-edit:hover {
+	border: 1px solid black;
+}
+
+.card-edit:active {
+	background-color: aliceblue;
+}
+
+.card-delete {
+	cursor: pointer;
+	user-select: none;
+}
+
+.card-delete:hover {
+	border: 1px solid black;
+}
+
+.card-delete:active {
+	background-color: aliceblue;
+}
+
+.card-name {
+	text-overflow: ellipsis;
+}
+
+.card-priority {
+	float: right;
+}
