@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Kanban Shadow DOM</title>
+	<link href="stylesheets/kanban.css" rel="stylesheet" type="text/css"/>
+	<script type="text/javascript" src="javascripts/shadowdom.js"></script>
+</head>
+<body>
+
+<!-- these are our swim lanes -->
+<template id="column-template">
+	<style>
+		.column {
+			display: grid;
+			border: 1px solid black;
+			border-radius: 10px;
+			padding: 5px;
+			margin: 5px;
+			grid-template-rows: 30px auto;
+		}
+
+		.column-heading {
+			border-bottom: 1px solid black;
+		}
+
+		.column-heading > * {
+			display: inline;
+		}
+
+		.column-add {
+			float: right;
+			cursor: pointer;
+			user-select: none;
+		}
+
+		.column-add:hover {
+			border: 1px solid black;
+		}
+
+		.column-add:active {
+			background-color: aliceblue;
+		}
+	</style>
+	<div class="column">
+		<div class="column-heading">
+			<div class="column-title">
+				<slot name="title">Placeholder</slot>
+			</div>
+			<div class="column-add">➕</div>
+		</div>
+		<div class="column-content">
+			<!-- catch all slot, all extra children will be added here -->
+			<slot></slot>
+		</div>
+	</div>
+</template>
+
+<!-- these are our sticky notes for the kanban, the card -->
+<template id="card-template">
+	<style>
+		.card {
+			border: 1px solid black;
+			border-radius: 5px;
+			margin: 5px;
+			padding: 3px;
+			min-height: 50px;
+		}
+
+		.edit-only {
+			display: none;
+		}
+
+		.card-heading {
+			border-bottom: 1px solid black;
+		}
+
+		.card-heading > .card-actions > * {
+			display: inline;
+		}
+
+		.card.edit > .card-heading > .card-actions {
+			display: none;
+		}
+
+		.card-save {
+			display: none;
+		}
+
+		.card.edit > .card-save {
+			display: block;
+			float: right;
+		}
+
+		.card.edit .not-edit {
+			display: none;
+		}
+
+		.card-heading > * {
+			display: inline;
+		}
+
+		.card.edit .edit-only {
+			display: inline;
+		}
+
+		.card-edit {
+			cursor: pointer;
+			user-select: none;
+		}
+
+		.card-edit:hover {
+			border: 1px solid black;
+		}
+
+		.card-edit:active {
+			background-color: aliceblue;
+		}
+
+		.card-delete {
+			cursor: pointer;
+			user-select: none;
+		}
+
+		.card-delete:hover {
+			border: 1px solid black;
+		}
+
+		.card-delete:active {
+			background-color: aliceblue;
+		}
+
+		.card-name {
+			text-overflow: ellipsis;
+		}
+
+		.card-priority {
+			float: right;
+		}
+	</style>
+	<div class="card">
+		<div class="card-heading">
+			<div class="card-actions">
+				<div class="card-edit">✏️</div>
+				<div class="card-delete">🗑️</div>
+			</div>
+			<div class="card-name">
+				<slot class="not-edit" name="title">Title</slot>
+				<label aria-label="Title"><input type="text" class="edit-only" name="title-edit"></label>
+			</div>
+			<div class="card-priority">
+				<slot class="not-edit" name="priority">Low</slot>
+				<label aria-label="Priority"><select class="edit-only" name="priority-edit">
+					<option value="High">High</option>
+					<option value="Medium">Medium</option>
+					<option value="Low">Low</option>
+				</select></label>
+			</div>
+		</div>
+		<div class="card-body">
+			<slot class="not-edit" name="description">Placeholder</slot>
+			<label aria-label="Description"><textarea class="edit-only" name="description-edit"></textarea></label>
+		</div>
+		<div class="card-save">💾</div>
+	</div>
+</template>
+
+<main>
+</main>
+
+</body>
+</html>
