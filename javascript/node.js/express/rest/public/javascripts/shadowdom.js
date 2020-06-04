@@ -12,6 +12,9 @@ class Api {
 			method: "POST",
 			mode: "same-origin",
 			cache: "no-cache",
+			headers: {
+				"Content-Type": "application/json"
+			},
 			body: JSON.stringify({...card, column: columnId})
 		});
 	}
@@ -29,6 +32,9 @@ class Api {
 			method: "PATCH",
 			mode: "same-origin",
 			cache: "no-cache",
+			headers: {
+				"Content-Type": "application/json"
+			},
 			body: JSON.stringify({
 				cardId: cardId,
 				columnId: columnId
@@ -272,13 +278,15 @@ function saveCard(ev) {
 		e.body = ev.detail.newDescription;
 		return e;
 	});
-	api.saveCard(data[ev.target.parentElement.title].find((e) => e.id === ev.detail.cardId), ev.target.parentElement.title).finally(() => {});
+	api.saveCard(data[ev.target.parentElement.title].find((e) => e.id === ev.detail.cardId), ev.target.parentElement.title).finally(() => {
+	});
 }
 
 function deleteCard(ev) {
 	data[ev.target.parentElement.title] = data[ev.target.parentElement.title].filter((e) => e.id !== ev.detail.cardId);
 
-	api.deleteCard(ev.detail.cardId).finally(() => {});
+	api.deleteCard(ev.detail.cardId).finally(() => {
+	});
 }
 
 function cardDrop(ev) {
@@ -294,7 +302,9 @@ function cardDrop(ev) {
 		const cardData = data[oldColumn].find((e) => e.id === card.cardId);
 		data[oldColumn] = data[oldColumn].filter((e) => e.id !== cardData.id);
 		data[ev.currentTarget.title].push(cardData);
-		api.moveCard(ev.dataTransfer.getData("text"), ev.currentTarget.title).finally(() => {});;
+		api.moveCard(ev.dataTransfer.getData("text"), ev.currentTarget.title).finally(() => {
+		});
+		;
 	}
 }
 
