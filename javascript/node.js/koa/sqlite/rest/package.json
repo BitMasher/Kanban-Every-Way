@@ -1,0 +1,34 @@
+{
+  "name": "kanban-node-koa-sqlite-rest",
+  "version": "1.0.0",
+  "description": "Kanban in Node.js, Koa, Sqlite, Rest",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BitMasher/Kanban-Every-Way.git"
+  },
+  "author": "BitMasher",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/BitMasher/Kanban-Every-Way/issues"
+  },
+  "homepage": "https://github.com/BitMasher/Kanban-Every-Way#readme",
+  "jest": {
+    "collectCoverage": true
+  },
+  "dependencies": {
+    "@koa/router": "^9.0.1",
+    "koa": "^2.12.0",
+    "koa-bodyparser": "^4.3.0",
+    "koa-static": "^5.0.0",
+    "sqlite3": "^4.2.0"
+  },
+  "devDependencies": {
+    "jest": "^26.0.1",
+    "supertest": "^4.0.2"
+  }
+}
